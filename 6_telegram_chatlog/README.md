@@ -1,6 +1,3 @@
-##### Date: 2021/08/21
-##### Update: None
-
 # Telegram to Graylog forwarder
 
 ## Table of Contents
