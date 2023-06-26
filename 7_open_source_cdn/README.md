@@ -282,6 +282,10 @@ $ cat /etc/udev/rules.d/50-custom-txqueuelen.rules
 KERNEL=="eth*", RUN+="/sbin/ip link set %k txqueuelen 10000"
 ```
 
+> *Внимание:* <br/>
+> В 2022 году некоторые из перечисленных ниже параметров ядра Linux уже устарели, другие были заменены.
+> Проверяйте поддержку перечисленных параметров для выбранной версии ядра Linux.
+
 Не менее важной является корректировка настроек ядра Linux через [sysctl](https://ru.wikipedia.org/wiki/Sysctl) <sup id="a35">[35](#f35)</sup>:
 ```ini
 $ cat /etc/sysctl.conf

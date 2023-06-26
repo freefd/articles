@@ -89,7 +89,7 @@ Available arguments are:
 ### Realtime mode
 The example on how to execute the script wordy for `realtime` mode:
 ```
-$ ./telegram_chatlog2graylog.py --phone 79123456789 --api-id 123456 --api-hash a622ddd7244a59b9c12be4e762a133df --graylog-host 192.168.77.42 -vv
+$ ./telegram_chatlog2graylog.py --phone 79123456789 --api-id 123456 --api-hash a622ddd7244a59b9c12be4e762a133df --graylog-host 198.51.100.42 -vv
 [2021-08-05 01:42:19,232] DEBUG: Running Mode: realtime
 [2021-08-05 01:42:19,233] DEBUG: Using selector: EpollSelector
 [2021-08-05 01:42:19,234] INFO: Connecting to 149.154.167.51:443/TcpFull...
@@ -115,7 +115,7 @@ $ ./telegram_chatlog2graylog.py --phone 79123456789 --api-id 123456 --api-hash a
 ### History mode
 The another example for verbosely execution in `history` mode:
 ```
-$ ./telegram_chatlog2graylog.py --phone 79123456789 --api-id 123456 --api-hash a622ddd7244a59b9c12be4e762a133df --graylog-host 192.168.77.42 --mode history --until 1970-01-01 -vv
+$ ./telegram_chatlog2graylog.py --phone 79123456789 --api-id 123456 --api-hash a622ddd7244a59b9c12be4e762a133df --graylog-host 198.51.100.42 --mode history --until 1970-01-01 -vv
 [2021-08-05 01:47:46,290] DEBUG: Running Mode: history
 [2021-08-05 01:47:46,291] DEBUG: Using selector: EpollSelector
 [2021-08-05 01:47:46,293] INFO: Connecting to 149.154.167.51:443/TcpFull...
@@ -162,7 +162,7 @@ $ ./telegram_chatlog2graylog.py --phone 79123456789 --api-id 123456 --api-hash a
 
 ... omitted for brevity ...
 
-[2021-08-05 01:50:49,650] INFO: Send messages one by one: 192.168.77.1 via 12201/UDP
+[2021-08-05 01:50:49,650] INFO: Send messages one by one: 198.51.100.1 via 12201/UDP
 [2021-08-05 01:50:49,653] DEBUG: New raw message: Message(id=1234567, peer_id=PeerChannel(channel_id=1012345678), date=datetime.datetime(2021, 8, 4, 6, 12, 31, tzinfo=datetime.timezone.utc), message="@Username's rating is now 42", out=False, mentioned=False, media_unread=False, silent=False, post=False, from_scheduled=False, legacy=False, edit_hide=False, pinned=False, from_id=PeerUser(user_id=30123456), fwd_from=None, via_bot_id=None, reply_to=None, media=None, reply_markup=None, entities=[MessageEntityMention(offset=0, length=17)], views=None, forwards=None, replies=MessageReplies(replies=0, replies_pts=272769, comments=False, recent_repliers=[], channel_id=None, max_id=None, read_max_id=None), edit_date=None, post_author=None, grouped_id=None, restriction_reason=[], ttl_period=None)
 [2021-08-05 01:50:49,654] DEBUG: Assigned msg_id = 6992711200120490572 to GetUsersRequest (7f934d04e100)
 [2021-08-05 01:50:49,655] DEBUG: Encrypting 1 message(s) in 44 bytes for sending
@@ -171,7 +171,7 @@ $ ./telegram_chatlog2graylog.py --phone 79123456789 --api-id 123456 --api-hash a
 
 ... omitted for brevity ...
 
-[2021-08-05 01:50:49,786] DEBUG: Sending parsed message: {'version': '1.1', 'channel_title': 'chat1', 'channel_id': -1001012345678, 'sender_id': 30123456, 'sender_username': 'someunknownbot', 'sender_firstname': 'Bot', 'sender_lastname': None, 'timestamp': 1628057551, 'message_id': 1234567, 'full_message': "@Username's rating is now 42", 'short_message': "@Username's rating is now 42", 'host': '192.168.77.42'} to 192.168.77.42:12201
+[2021-08-05 01:50:49,786] DEBUG: Sending parsed message: {'version': '1.1', 'channel_title': 'chat1', 'channel_id': -1001012345678, 'sender_id': 30123456, 'sender_username': 'someunknownbot', 'sender_firstname': 'Bot', 'sender_lastname': None, 'timestamp': 1628057551, 'message_id': 1234567, 'full_message': "@Username's rating is now 42", 'short_message': "@Username's rating is now 42", 'host': '198.51.100.42'} to 198.51.100.42:12201
 
 ...
 ```
@@ -207,7 +207,7 @@ services:
     restart: unless-stopped
     networks:
       networkname:
-        ipv4_address: 192.168.77.43
+        ipv4_address: 198.51.100.43
     environment:
       CHATLOG2GRAYLOG_PHONE: ${CHATLOG2GRAYLOG_PHONE}
       CHATLOG2GRAYLOG_API_ID: ${CHATLOG2GRAYLOG_API_ID}
@@ -227,7 +227,7 @@ The [.env](https://docs.docker.com/compose/environment-variables/) <sup id="a8">
 CHATLOG2GRAYLOG_PHONE=79123456789
 CHATLOG2GRAYLOG_API_ID=123456
 CHATLOG2GRAYLOG_API_HASH=a622ddd7244a59b9c12be4e762a133df
-CHATLOG2GRAYLOG_GRAYLOG_HOST=192.168.77.42
+CHATLOG2GRAYLOG_GRAYLOG_HOST=198.51.100.42
 CHATLOG2GRAYLOG_LOG_LEVEL=0
 
 ...
@@ -274,7 +274,7 @@ Before script can work as service, to create a session file is required. How to 
   ```
 * Run built docker image to generate session file
   ```
-  # docker run --rm -ti -v /docker/graylog/chatlog2graylog_source/chatlog2graylog-config:/tmp --network=0ipvlan20 --ip=192.168.77.43 graylog_telegram_chatlog2graylog:latest ash
+  # docker run --rm -ti -v /docker/graylog/chatlog2graylog_source/chatlog2graylog-config:/tmp --network=0ipvlan20 --ip=198.51.100.43 graylog_telegram_chatlog2graylog:latest ash
   / # python3 /usr/local/bin/telegram_chatlog2graylog.py -ph 79123456789 -id 123456 -hash a622ddd7244a59b9c12be4e762a133df -gh 127.0.0.1
   Please enter the code you received: 12345
   Signed in successfully as Username
