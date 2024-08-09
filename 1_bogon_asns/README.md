@@ -3,8 +3,7 @@
 - [Publish Date](#publish-date)
 - [Installation](#installation)
   * [BGP Scanner](#bgp-scanner)
-    + [Installing from packages](#installing-from-packages)
-    + [Building from source using Docker](#building-from-source-using-docker)
+    + [Building from source using Podman](#building-from-source-using-podman)
   * [FlashText](#flashtext)
   * [Python script](#python-script)
   * [RIS Raw Data](#ris-raw-data)
@@ -15,65 +14,67 @@ Today we will try to find bogon ASNs without any network equipment using only RI
 
 ## Publish Date
 * 2019-06-14
+## Update History
+* 2024-08-09: Fix broken and outdated links, update Dockerfile/Containerfile and replace docker by podman
 
 ## Installation
 
 ### BGP Scanner
-First you need to install [bgpscanner](https://www.isolario.it/web_content/php/site_content/tools.php) <sup id="a1">[1](#f1)</sup> utility from [Isolario](https://www.isolario.it/) <sup id="a2">[2](#f2)</sup> project.
-#### Installing from packages
-Please pay attention that our destination OS is Ubuntu/Debian.
-```bash
-$ wget https://www.isolario.it/tools/libisocore1_1.0-1_20190320_amd64.deb https://www.isolario.it/tools/bgpscanner_1.0-1_20190320_amd64.deb
-$ sudo dpkg -i libisocore1_1.0-1_20190320_amd64.deb bgpscanner_1.0-1_20190320_amd64.deb
-```
-#### Building from source using Docker
-To build from source we will use Docker and temporary build image without any packaging to DEB or RPM packages.
+First you need to install [bgpscanner](https://gitlab.com/Isolario/bgpscanner) <sup id="a1">[1](#f1)</sup> utility from [Isolario](https://conference.apnic.net/45/assets/files/APNT806/Isolario-project-The-real-time-Internet-routing-observatory.pdf) <sup id="a2">[2](#f2)</sup> project.
 
-Create two directories with names `bgpscanner` and `bgpscnr`, create a Dockerfile for `bgpscanner` build process in the directory `bgpscnr`. This one is also based on Debian:
+#### Building from source using Podman
+To build from source we will use Podman and temporary build image without any packaging to DEB or RPM packages.
+
+Create two directories with names `bgpscanner` and `build`:
 ```bash
+$ mkdir bgpscanner build
+```
+
+Create a [Dockerfile or Containerfile](https://github.com/freefd/bogon_ASNs/blob/master/Dockerfile) <sup id="a10">[10](#f10)</sup> for `bgpscanner` build process in the directory `build`. It is based on the Debian image:
+```bash
+$ cat <<$'EOF' > build/Containerfile
 FROM debian:latest
 RUN apt update \
-    && apt install -y git cmake ninja-build pkg-config python3-pip zlib1g-dev libbz2-dev liblzma-dev liblz4-dev
-RUN pip3 install meson
-RUN git clone https://gitlab.com/Isolario/bgpscanner.git /root/bgpscanner \
+    && apt install -y git cmake ninja-build pkg-config \
+    python3-pip zlib1g-dev libbz2-dev liblzma-dev liblz4-dev \
+    && pip3 install meson --break-system-packages \
+    && git clone https://gitlab.com/Isolario/bgpscanner.git /root/bgpscanner \
     && mkdir /root/bgpscanner/build
 WORKDIR /root/bgpscanner/build
-RUN /usr/local/bin/meson --buildtype=release ..
-RUN export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/bgpscanner/build/./subprojects/isocore \
-    && ldconfig
-RUN ninja 
-
-RUN cp -f /root/bgpscanner/build/bgpscanner /opt/
-RUN cp -f /root/bgpscanner/build/./subprojects/isocore/libisocore.so /opt/
+RUN /usr/local/bin/meson --buildtype=release .. \
+    && export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/bgpscanner/build/./subprojects/isocore \
+    && ldconfig \
+    && ninja \
+    && cp -f /root/bgpscanner/build/bgpscanner /opt/ \
+    && cp -f /root/bgpscanner/build/./subprojects/isocore/libisocore.so /opt/
+EOF
 ```
-Run `docker build` command to build a temporary image that will hold compiled `bgpscanner` and [libisocore.so](https://gitlab.com/Isolario/isocore) <sup id="a3">[3](#f3)</sup> binaries:
+Run `podman build` command to build a temporary image that will hold compiled `bgpscanner` and [libisocore.so](https://gitlab.com/Isolario/isocore) <sup id="a3">[3](#f3)</sup> binaries:
 ```
-$ docker build --force-rm -t bgpscnr bgpscnr/
-Sending build context to Docker daemon   2.56kB
-Step 1/10 : FROM debian:latest
- ---> 2d337f242f07
-Step 2/10 : RUN apt update     && apt install -y git cmake ninja-build pkg-config python3-pip zlib1g-dev libbz2-dev liblzma-dev liblz4-dev
- ---> Running in b5dcb479a312
+$ podman build --force-rm -t bgpscnr build/
+STEP 1/4: FROM debian:latest
+STEP 2/4: RUN apt update     && apt install -y git cmake ninja-build pkg-config     python3-pip zlib1g-dev libbz2-dev liblzma-dev liblz4-dev     && pip3 install meson --break-system-packages     && git clone https://gitlab.com/Isolario/bgpscanner.git /root/bgpscanner     && mkdir /root/bgpscanner/build
 
 ... output omitted for brevity ...
 
-Removing intermediate container 9c61f7b95818
- ---> 49e62576a944
-Successfully built 49e62576a944
-Successfully tagged bgpscnr:latest
+[32/32] Linking target bgpscanner
+COMMIT bgpscnr
+--> c8d67e872dd3
+Successfully tagged localhost/bgpscnr:latest
+c8d67e872dd3aa0e869bc26a321f721cd2f93e30c2cd013375daf4f174724e46
 ```
 
 After completing a process, check that the image exists:
 
 ```
-$ docker image ls -f reference=bgpscnr
-REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
-bgpscnr             latest              49e62576a944        27 seconds ago      589MB
+$ podman image ls -f reference=bgpscnr
+REPOSITORY                TAG         IMAGE ID      CREATED        SIZE
+localhost/bgpscnr         latest      c8d67e872dd3  3 minutes ago  807 MB
 ```
 
 Now you must be able to run the container to get the compiled binary files to directory `bgpscanner`:
 
-`$ docker run -ti --rm -v $(pwd)/bgpscanner:/mnt bgpscnr:latest sh -c "cp /opt/* /mnt/"`
+`$ podman run -ti --rm -v $(pwd)/bgpscanner:/mnt bgpscnr:latest sh -c "cp /opt/* /mnt/"`
 
 The container will copy two files, exit and to be terminated immediately. Please check the contents of `bgpscanner` directory after that all:
 
@@ -87,7 +88,7 @@ total 284
 If so, you can also remove the temporary image:
 
 ```
-$ docker image rm bgpscnr:latest
+$ podman image rm bgpscnr:latest
 ```
 
 Due to the fact that `bgpscanner` was built using a shared library, we have to change LD_LIBRARY_PATH at runtime and check that all libs are accessible:
@@ -113,10 +114,24 @@ If there are no "not found" libs, we can now invoke `bgpscanner` as follows:
 $ LD_LIBRARY_PATH=. ./bgpscanner [options]
 ```
 
+For example, simulate `help` output, however, there is no `-help` argument:
+```bash
+$ LD_LIBRARY_PATH=. ./bgpscanner -h
+./bgpscanner: invalid option -- 'h' # <<< Throws an error and it is okay
+bgpscanner: The Isolario MRT data reader utility
+Usage:
+	bgpscanner [-cdlL] [-mM COMMSTRING] [-pP PATHEXPR] [-i ADDR] [-I FILE] [-a AS] [-A FILE] [-e PREFIX] [-E FILE] [-t ATTR_CODE] [-T FILE] [-o FILE] [FILE...]
+	bgpscanner [-cdlL] [-mM COMMSTRING] [-pP PATHEXPR] [-i ADDR] [-I FILE] [-a AS] [-A FILE] [-s PREFIX] [-S FILE] [-t ATTR_CODE] [-T FILE] [-o FILE] [FILE...]
+	bgpscanner [-cdlL] [-mM COMMSTRING] [-pP PATHEXPR] [-i ADDR] [-I FILE] [-a AS] [-A FILE] [-u PREFIX] [-U FILE] [-t ATTR_CODE] [-T FILE] [-o FILE] [FILE...]
+	bgpscanner [-cdlL] [-mM COMMSTRING] [-pP PATHEXPR] [-i ADDR] [-I FILE] [-a AS] [-A FILE] [-r PREFIX] [-R FILE] [-t ATTR_CODE] [-T FILE] [-o FILE] [FILE...]
+
+...
+```
+
 ### FlashText
 For a fast and efficient loop through the records of a huge data file, we will use the flashtext<sup id="a4">[4](#f4)</sup> python's module implementation<sup id="a5">[5](#f5)</sup>:
 ```bash
-$ sudo pip3 install flashtext
+$ pip3 install --user flashtext --break-system-packages
 ```
 
 ### Python script
@@ -144,9 +159,9 @@ $ wget http://data.ris.ripe.net/rrc00/latest-bview.gz
 ```
 
 ## Usage
-Run command to extract and save RIS Raw Data to a text file named "bogons":
+Run command to extract and store RIS Raw Data with a text file named "bogons":
 ```bash
-$ bgpscanner latest-bview.gz | awk -F'|' '{print $3"|"$2}' | sort -V | uniq > bogons
+$ LD_LIBRARY_PATH=.. ../bgpscanner latest-bview.gz | awk -F'|' '{print $3"|"$2}' 2>/dev/null | sort -V | uniq > bogons
 ```
 The output should be similar as follows:
 ```
@@ -177,13 +192,13 @@ bogon ASN(s)|as-path|prefix(es)
 
 However, you can define filter(s) to extract only records you need:
 ```bash
-$ bgpscanner -p ' 55410 ' latest-bview.gz | awk -F'|' '{print $3"|"$2}' | sort -V | uniq > bogons
+$ LD_LIBRARY_PATH=.. ../bgpscanner -p ' 55410 ' latest-bview.gz 2>/dev/null | awk -F'|' '{print $3"|"$2}' | sort -V | uniq > bogons
 ```
 The example above will return only records contained AS55410 in AS path. More information about filtering you can find at the References below<sup id="a9">[9](#f9)</sup>.
 
 ## References
 <b id="f1">1</b>. [BGP Scanner](https://gitlab.com/Isolario/bgpscanner) [↩](#a1)<br/>
-<b id="f2">2</b>. [Isolario Project](https://gitlab.com/Isolario/isocore) [↩](#a2)<br/>
+<b id="f2">2</b>. [Isolario Project](https://conference.apnic.net/45/assets/files/APNT806/Isolario-project-The-real-time-Internet-routing-observatory.pdf) [↩](#a2)<br/>
 <b id="f3">3</b>. [Isocore](https://gitlab.com/Isolario/isocore) [↩](#a3)<br/>
 <b id="f4">4</b>. [FlashText algorithm](https://arxiv.org/pdf/1711.00046.pdf) [↩](#a4)<br/>
 <b id="f5">5</b>. [FlashText python module documentation](https://flashtext.readthedocs.io/en/latest/) [↩](#a5)<br/>
@@ -193,3 +208,6 @@ The example above will return only records contained AS55410 in AS path. More in
 <b id="f9">9</b>. About bgpscanner filtering options: [↩](#a9)
 * [https://gitlab.com/Isolario/bgpscanner/wikis/Home#filtering](https://gitlab.com/Isolario/bgpscanner/wikis/Home#filtering)
 * [https://ripe77.ripe.net/presentations/12-pres.pdf#page=20](https://ripe77.ripe.net/presentations/12-pres.pdf#page=20) (page 20)
+
+<br/>
+<b id="f10">10</b>. [Dockerfile](https://github.com/freefd/bogon_ASNs/blob/master/Dockerfile) [↩](#a10)<br/>
