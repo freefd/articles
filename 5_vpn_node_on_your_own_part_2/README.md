@@ -94,7 +94,6 @@ services:
     networks:
       - 1frontend
     volumes:
-      - /docker/wireguard/periodic-config:/etc/periodic
       - /docker/wireguard/wireguard-config:/etc/wireguard
       - /docker/wireguard/bird-config:/etc/bird
     sysctls:
@@ -181,13 +180,6 @@ root@host:~# tree -a /docker
     ├── build
     │   ├── Dockerfile
     │   └── supervisord.conf
-    ├── periodic-config
-    │   ├── 15min
-    │   │   └── make_routes
-    │   ├── daily
-    │   ├── hourly
-    │   ├── monthly
-    │   └── weekly
     └── wireguard-config
         ├── bootstrap.sh
         ├── configurations
@@ -248,7 +240,6 @@ RUN echo 'https://dl-cdn.alpinelinux.org/alpine/edge/testing' >> /etc/apk/reposi
     chmod a+x /usr/local/bin/parser && \
     mkdir /etc/bird/
 
-VOLUME /etc/periodic/
 VOLUME /etc/bird
 VOLUME /etc/wireguard/
 
@@ -448,36 +439,14 @@ protocol bgp roadwarrior_BGP_1 from roadwarrior_Peer {
 ```
 Templates for [BGP](https://en.wikipedia.org/wiki/Border_Gateway_Protocol) <sup id="a19">[19](#f19)</sup> peers at branch premises and [road warrior](https://en.wikipedia.org/wiki/Road_warrior_(computing)) <sup id="a20">[20](#f20)</sup> BGP peers are defined there, it's simplify the manner on how peers can be declared. The main difference, road warrior peers do not contain [BFD](https://en.wikipedia.org/wiki/Bidirectional_Forwarding_Detection) <sup id="a21">[21](#f21)</sup> protocol due to the poor quality of channels used by mobile clients. Also IPv4 table will be populated by static files with prefixes. The static file [manual.conf](https://github.com/freefd/vpn_box/blob/main/server/wireguard/bird-config/manual.conf) filled manually for some specific time-invariant prefixes, for example:
 ```
-### Linkedin
+### ResourceName
 route 108.174.0.0/20 via "wg0";
 route 185.63.144.0/22 via "wg0";
 route 13.64.0.0/11 via "wg0";
 route 13.96.0.0/13 via "wg0";
 route 13.104.0.0/14 via "wg0";
 ```
-The [generated.conf](https://github.com/freefd/vpn_box/blob/main/server/wireguard/bird-config/generated.conf) file contains the same prefixes format but refreshes every 15 minutes by abovementioned [make_routes](https://github.com/freefd/vpn_box/blob/main/server/wireguard/periodic-config/15min/make_routes) script you noted in the directories structure:
-```bash
-#!/usr/bin/env sh
-
-echo "Running make_routes script"
-rm -rf /tmp/z-i
-git clone --depth=1 https://github.com/zapret-info/z-i.git /tmp/z-i
-
-# You can get parser's source from https://github.com/unsacrificed/network-list-parser/
-echo "Generating prefixes"
-parser -src-file /tmp/z-i/dump.csv -prefix 'route ' -suffix ' via "wg0";' 2>/dev/null > /etc/bird/generated.conf
-
-echo "Excluding certain prefixes"
-while read line;
-do
-    sed -i "/$line/d" /etc/bird/generated.conf;
-done < /etc/bird/exclusions.conf
-
-echo "Reloading BIRD"
-birdc configure
-rm -rf /tmp/z-i
-```
-Script creates a list of prefixes collected from [Roskomnadzor blacklists](https://eais.rkn.gov.ru/en/) <sup id="a22">[22](#f22)</sup> compiled into the [Register of Internet Addresses filtered in Russian Federation](https://github.com/zapret-info/z-i.git) <sup id="a23">[23](#f23)</sup> repository.
+The [generated.conf](https://github.com/freefd/vpn_box/blob/main/server/wireguard/bird-config/generated.conf) file contains the same prefixes format.
 
 The [exclusions.conf](https://github.com/freefd/vpn_box/blob/main/server/wireguard/bird-config/exclusions.conf) file is required to forcibly remove lines from [generated.conf](https://github.com/freefd/vpn_box/blob/main/server/wireguard/bird-config/generated.conf) file and exclude such prefixes to be advertised to VPN overlay. Format example:
 ```
@@ -530,8 +499,6 @@ parser               100% |********************************| 2340k  0:00:00 ETA
 '/usr/local/bin/parser' saved
 Removing intermediate container b98ba8d656b7
  ---> babc2d07dffd
-Step 4/8 : VOLUME /etc/periodic/
- ---> Running in 46a53f07ca4b
 Removing intermediate container 46a53f07ca4b
  ---> ca0fba4d8936
 Step 5/8 : VOLUME /etc/bird
@@ -647,8 +614,6 @@ Part 3 explains CPEs and Device Endpoint configurations.
 <b id="f19">19</b>. [Border Gateway Protocol](https://en.wikipedia.org/wiki/Border_Gateway_Protocol) [↩](#a19)<br/>
 <b id="f20">20</b>. [Road Warrior](https://en.wikipedia.org/wiki/Road_warrior_(computing)) [↩](#a20)<br/>
 <b id="f21">21</b>. [Bidirectional Forwarding Detection](https://en.wikipedia.org/wiki/Bidirectional_Forwarding_Detection) [↩](#a21)<br/>
-<b id="f22">22</b>. [Unified register of resources which are forbidden in the Russian Federation](https://eais.rkn.gov.ru/en/) [↩](#a22)<br/>
-<b id="f23">23</b>. [Register of Internet Addresses filtered in Russian Federation](https://github.com/zapret-info/z-i.git) [↩](#a23)<br/>
 <b id="f24">24</b>. [MTProto Mobile Protocol](https://core.telegram.org/mtproto) [↩](#a24)<br/>
 <b id="f25">25</b>. [mtg: MTProto proxy for Telegram](https://github.com/9seconds/mtg) [↩](#a25)<br/>
 <b id="f26">26</b>. [MTProto Fake TLS](https://geekbrit.org/content/22070) [↩](#a26)<br/>
